@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AuraFind — Campus Lost & Found • Apple Liquid UI</title>
+  
+  <!-- Tailwind Utility Engine -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  
+  <!-- Authentic Apple Liquid Glass & SF Pro Typography Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- LUMINOUS FLUID AMBIENT MESH (Vibrant Dribbble Underlay) -->
+  <div class="ambient-glow-container">
+    <div class="ambient-orb orb-cyan"></div>
+    <div class="ambient-orb orb-violet"></div>
+    <div class="ambient-orb orb-emerald"></div>
+  </div>
+
+  <!-- MAIN WRAPPER -->
+  <div class="relative z-10 flex flex-col min-h-screen">
+
+    <!-- FLOATING APPLE LIQUID NAVIGATION DOCK -->
+    <header class="sticky top-0 z-40 px-4 sm:px-8 py-3.5 border-b border-white/10 bg-[#04060d]/70 backdrop-blur-2xl">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        
+        <!-- Brand / Identity -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchMainTab('found')">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-400 via-indigo-500 to-purple-500 p-[1.5px] shadow-lg shadow-cyan-500/25">
+            <div class="w-full h-full bg-[#070b16] rounded-[14px] flex items-center justify-center">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-extrabold text-lg sm:text-xl tracking-tight text-white">AuraFind</span>
+              <span class="apple-capsule text-cyan-300 border-cyan-400/30 bg-cyan-950/40">Apple Liquid</span>
+            </div>
+            <p class="text-[11px] text-slate-400 hidden sm:block">Campus Security & Data Sanity Engine</p>
+          </div>
+        </div>
+
+        <!-- Center Feed Mode Picker (Apple Floating Liquid Dock) -->
+        <div class="apple-liquid-dock hidden md:inline-flex" id="mainTabDock">
+          <button id="tabBtnFound" class="apple-segment-btn active" onclick="switchMainTab('found')">
+            📦 Found Items
+          </button>
+          <button id="tabBtnLost" class="apple-segment-btn" onclick="switchMainTab('lost')">
+            📢 Lost Broadcasts
+          </button>
+        </div>
+
+        <!-- Right Action Items -->
+        <div class="flex items-center gap-2.5">
+          <!-- Vulnerability Heatmap Button -->
+          <button onclick="openAnalyticsModal()" class="pixel-tap px-3.5 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-cyan-300 text-xs font-semibold border border-white/15 flex items-center gap-1.5 transition shadow-sm">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span class="hidden sm:inline">Campus Heatmap</span>
+          </button>
+
+          <!-- Primary Report Button (Apple Liquid Specular Button) -->
+          <button onclick="openReportModal()" class="pixel-tap apple-liquid-btn px-4 py-2 text-xs sm:text-sm flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Report Incident</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MOBILE SEGMENTED CONTROL BAR -->
+    <div class="md:hidden px-4 pt-3 flex justify-center">
+      <div class="apple-liquid-dock w-full justify-center" id="mobileTabDock">
+        <button class="apple-segment-btn active flex-1 text-center" onclick="switchMainTab('found')">Found Items</button>
+        <button class="apple-segment-btn flex-1 text-center" onclick="switchMainTab('lost')">Lost Broadcasts</button>
+      </div>
+    </div>
+
+    <!-- MAIN BODY -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8">
+      
+      <!-- HERO BANNER (Dribbble Liquid Glass Architecture) -->
+      <div class="apple-liquid-card p-6 sm:p-10 mb-8 relative">
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.08] border border-white/15 text-xs font-medium text-cyan-300 mb-4 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+            Strict Data Sanity Protection • Zero-Gibberish Guarantee
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight mb-4">
+            Campus Lost & Found <br/>
+            <span class="bg-gradient-to-r from-cyan-400 via-indigo-300 to-teal-300 bg-clip-text text-transparent">Apple Liquid Design & AI Verification.</span>
+          </h1>
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6">
+            Found an item? Secure it behind 3 custom questions with automatic hostel/guard custody routing. Lost something? Broadcast verified non-sensitive physical traits immediately.
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="openReportModal()" class="pixel-tap px-5 py-2.5 rounded-full bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-slate-100 transition shadow-lg">
+              Report an Incident
+            </button>
+            <button onclick="openAnalyticsModal()" class="pixel-tap px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-medium text-xs sm:text-sm border border-white/20 transition shadow-inner">
+              View Loss Risk Analytics
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEED CATEGORY FILTER -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 id="feedHeading" class="text-xl sm:text-2xl font-bold tracking-tight text-white">Recovered Items Grid</h2>
+          <p id="feedSubHeading" class="text-xs sm:text-sm text-slate-400">Items found across campus protected by 3-stage security questions</p>
+        </div>
+
+        <div class="apple-liquid-dock overflow-x-auto" id="catFilterDock">
+          <button class="apple-segment-btn active" data-cat="all" onclick="filterCategory('all')">All</button>
+          <button class="apple-segment-btn" data-cat="Electronics" onclick="filterCategory('Electronics')">📱 Phones</button>
+          <button class="apple-segment-btn" data-cat="Laptops" onclick="filterCategory('Laptops')">💻 Laptops</button>
+          <button class="apple-segment-btn" data-cat="Accessories" onclick="filterCategory('Accessories')">🎧 Audio/Tech</button>
+        </div>
+      </div>
+
+      <!-- INCIDENTS GRID (Rendered dynamically by app.js) -->
+      <div id="incidentsFeed" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="mt-auto border-t border-white/10 bg-[#04060d]/80 py-6 px-4 text-center text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p>© 2026 AuraFind • Apple Liquid Glass Edition</p>
+        <div class="flex items-center gap-4 text-slate-400">
+          <span>Anti-Gibberish Protected</span>
+          <span>•</span>
+          <span>AI Discrepancy Matching</span>
+          <span>•</span>
+          <span class="text-cyan-400">PostgreSQL Schema Ready</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+
+  <!-- ==============================================================
+       MODAL 1: REPORT INCIDENT (DUAL MODE: FOUND vs LOST)
+  =============================================================== -->
+  <div id="reportModal" class="apple-sheet-backdrop">
+    <div class="apple-sheet-card p-6 sm:p-8">
+      
+      <div class="apple-sheet-handle"></div>
+
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+        <div>
+          <h3 class="text-xl font-bold text-white tracking-tight">Report Incident</h3>
+          <p class="text-xs text-slate-400">Input Sanity Validated • Strict Anti-Gibberish Check Active</p>
+        </div>
+        <button onclick="closeReportModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300">
+          ✕
+        </button>
+      </div>
+
+      <!-- DUAL MODE SWITCHER -->
+      <div class="flex justify-center mb-6">
+        <div class="apple-liquid-dock w-full sm:w-auto" id="reportModeDock">
+          <button type="button" id="modeBtnFound" class="apple-segment-btn active flex-1 sm:flex-none px-6" onclick="switchReportMode('found')">
+            📦 I Found Something
+          </button>
+          <button type="button" id="modeBtnLost" class="apple-segment-btn flex-1 sm:flex-none px-6" onclick="switchReportMode('lost')">
+            📢 I Lost Something (Missing Broadcast)
+          </button>
+        </div>
+      </div>
+
+      <form id="reportForm" onsubmit="handleReportSubmit(event)" class="space-y-5">
+        
+        <!-- BASIC ITEM DETAILS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Item Title / Model</label>
+            <input type="text" id="itemTitle" required placeholder="e.g. iPhone 14 Pro Space Black" class="apple-input" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
+            <select id="itemCategory" class="apple-input !bg-slate-900">
+              <option value="Electronics">Smartphone / Tablet</option>
+              <option value="Laptops">Laptop / Ultrabook</option>
+              <option value="Accessories">Headphones / Wearables / Tech</option>
+              <option value="Documents">ID Card / Wallet / Keys</option>
+              <option value="Other">Umbrella / Clothing / Other</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CAMPUS LOCATION ZONE (FOR ANALYTICS & VULNERABILITY MAPPING) -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Campus Location Zone (Analytical Tag)</label>
+          <select id="locationZoneSelect" class="apple-input !bg-slate-900">
+            <option value="classroom">🏫 Classroom / Lecture Hall</option>
+            <option value="washroom">🚻 Campus Restroom / Washroom</option>
+            <option value="cafeteria">☕ Central Cafeteria / Food Court</option>
+            <option value="library">📚 Central Library / Silent Study Pods</option>
+            <option value="lab">💻 Computer / Engineering Lab</option>
+            <option value="hostel_common">🏢 Hostel Common Area</option>
+            <option value="sports">⚽ Sports Ground / Gym</option>
+          </select>
+        </div>
+
+        <!-- SPOT PHOTO PREVIEW -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Spot Photo (Upload or Take Photo)</label>
+          <div class="flex items-center gap-4">
+            <label class="pixel-tap cursor-pointer flex-1 flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 border-dashed border-white/15 hover:border-cyan-400/50 bg-white/[0.03] transition">
+              <svg class="w-6 h-6 text-cyan-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              </svg>
+              <span class="text-xs text-slate-300 font-medium">Click to Attach Photo</span>
+              <input type="file" id="itemPhotoInput" accept="image/*" class="hidden" onchange="previewIncidentImage(event)" />
+            </label>
+            <div id="imagePreviewBox" class="w-16 h-16 rounded-2xl border border-white/15 bg-white/5 overflow-hidden flex items-center justify-center">
+              <img id="previewImg" class="w-full h-full object-cover hidden" alt="Uploaded Preview" />
+              <span id="previewPlaceholder" class="text-[9px] text-slate-500 text-center">No Photo</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTACT & IDENTITY (WITH STRICT REAL-TIME SANITY CHECKING) -->
+        <div class="pt-3 border-t border-white/10 space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Reporter Contact (Sanity Validated)</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Your Full Name</label>
+              <input type="text" id="reporterName" required placeholder="e.g. Alex Morgan" class="apple-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">College Email</label>
+              <input type="email" id="reporterEmail" required placeholder="e.g. alex@campus.edu" class="apple-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Batch / Year</label>
+              <input type="text" id="reporterBatch" required placeholder="e.g. 2024 / 3rd Year" class="apple-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Direct Phone (Callable 10-Digits)</label>
+              <input type="tel" id="reporterPhone" required placeholder="e.g. 9876543210" class="apple-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- MODE A: FOUND SPECIFIC FIELDS (CUSTODY & 3 QUESTIONS) -->
+        <div id="foundSpecificFields" class="space-y-4 pt-3 border-t border-white/10">
+          
+          <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Current Custody Status</h4>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <label class="pixel-tap cursor-pointer p-3 rounded-2xl border border-white/10 bg-white/[0.04] flex items-center gap-3 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-600/20 transition">
+              <input type="radio" name="residenceType" value="hostel" checked onchange="toggleResidenceUI()" class="accent-indigo-500" />
+              <div>
+                <div class="text-xs font-bold text-white">Hostel Resident</div>
+                <div class="text-[10px] text-slate-400">Safe in my room</div>
+              </div>
+            </label>
+            <label class="pixel-tap cursor-pointer p-3 rounded-2xl border border-white/10 bg-white/[0.04] flex items-center gap-3 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-600/20 transition">
+              <input type="radio" name="residenceType" value="dayscholar" onchange="toggleResidenceUI()" class="accent-emerald-500" />
+              <div>
+                <div class="text-xs font-bold text-white">Day Scholar</div>
+                <div class="text-[10px] text-slate-400">At Guard Post</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Dynamic Hostel Fields -->
+          <div id="hostelFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20">
+            <div>
+              <label class="block text-[11px] font-medium text-indigo-200 mb-1">Hostel Block & Floor</label>
+              <input type="text" id="hostelFloor" placeholder="e.g. Block C, 3rd Floor" class="apple-input !bg-black/40" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-indigo-200 mb-1">Room Number</label>
+              <input type="text" id="hostelRoom" placeholder="e.g. Room 314" class="apple-input !bg-black/40" />
+            </div>
+          </div>
+
+          <!-- Dynamic Guard Fields -->
+          <div id="guardFields" class="hidden p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/20">
+            <label class="block text-[11px] font-medium text-emerald-200 mb-1">Campus Guard Post Submitted To</label>
+            <select id="guardLocation" class="apple-input !bg-slate-900">
+              <option value="Main Campus Gate 1 Guard Post">Main Campus Gate #1 Guard Post</option>
+              <option value="Central Library Security Desk">Central Library Security Desk</option>
+              <option value="Cafeteria Lost & Found Desk">Central Cafeteria Lost & Found Desk</option>
+              <option value="Academic Block Reception">Academic Block Reception Desk</option>
+            </select>
+          </div>
+
+          <!-- Security Questions Builder -->
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">3 Security Questions Lock</h4>
+                <p class="text-[11px] text-slate-400">Evaluated by AI semantic resolver (tolerates natural discrepancies)</p>
+              </div>
+              <span class="apple-capsule text-amber-300 border-amber-500/40 bg-amber-950/40">Min 3 Required</span>
+            </div>
+
+            <div id="securityQuestionsList" class="space-y-3"></div>
+
+            <button type="button" onclick="addCustomQuestion()" class="pixel-tap text-xs font-medium text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+              + Add Another Custom Security Question
+            </button>
+          </div>
+        </div>
+
+        <!-- MODE B: LOST SPECIFIC FIELDS (NON-SENSITIVE TRAITS) -->
+        <div id="lostSpecificFields" class="hidden space-y-3 pt-3 border-t border-white/10">
+          <div class="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-[11px] text-cyan-200 shadow-inner">
+            ℹ️ <strong>Sanity Protected:</strong> Enter genuine identifiable traits. Random keyboard mashing will be blocked automatically.
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Brand / Company</label>
+              <input type="text" id="lostBrand" placeholder="e.g. Apple, Dell, Sony, Samsung" class="apple-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Build Material / Finish</label>
+              <input type="text" id="lostMaterial" placeholder="e.g. Matte aluminum, glass back, polycarbonate" class="apple-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Observable Lockscreen Wallpaper</label>
+              <input type="text" id="lostWallpaper" placeholder="e.g. Mountain landscape, anime, plain black" class="apple-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Color / Case / External Marks</label>
+              <input type="text" id="lostColor" placeholder="e.g. Aqua blue silicone case with sticker" class="apple-input" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Last Seen Campus Location & Estimated Time</label>
+            <input type="text" id="lostLastSeen" placeholder="e.g. Lecture Hall 302, 3rd row desk around 11:30 AM" class="apple-input" />
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+          <button type="button" onclick="closeReportModal()" class="px-5 py-2.5 rounded-full text-xs font-medium text-slate-400 hover:text-white transition">
+            Cancel
+          </button>
+          <button type="submit" class="pixel-tap apple-liquid-btn px-6 py-2.5 text-xs font-bold">
+            Publish Incident to Grid
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- ==============================================================
+       MODAL 2: CLAIM ITEM (AI SEMANTIC VERIFICATION)
+  =============================================================== -->
+  <div id="claimModal" class="apple-sheet-backdrop">
+    <div class="apple-sheet-card p-6 sm:p-8">
+      
+      <div class="apple-sheet-handle"></div>
+
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+        <div>
+          <span class="apple-capsule text-cyan-300 border-cyan-400/30 bg-cyan-950/40">AI Ownership Verification</span>
+          <h3 class="text-lg font-bold text-white tracking-tight mt-1" id="claimModalTitle">Claim Item</h3>
+        </div>
+        <button onclick="closeClaimModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300">
+          ✕
+        </button>
+      </div>
+
+      <form id="claimForm" onsubmit="handleClaimSubmit(event)" class="space-y-4">
+        
+        <!-- Claimer Sanity Inputs -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-semibold text-slate-300">Your Contact Details (Callable)</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input type="text" id="claimerName" required placeholder="Your Name" class="apple-input text-xs" />
+            <input type="email" id="claimerEmail" required placeholder="Your College Email" class="apple-input text-xs" />
+            <input type="tel" id="claimerPhone" required placeholder="Phone (10 Digits)" class="apple-input text-xs" />
+          </div>
+        </div>
+
+        <!-- Questions Dynamic List -->
+        <div class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-amber-300">Answer 3 Security Questions</h4>
+            <span class="text-[10px] text-slate-400">AI Fuzzy Semantic Match</span>
+          </div>
+          <div id="claimQuestionsList" class="space-y-3"></div>
+        </div>
+
+        <!-- AI Verification Result Output -->
+        <div id="aiVerificationBox" class="hidden"></div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+          <button type="button" onclick="closeClaimModal()" class="px-5 py-2.5 rounded-full text-xs font-medium text-slate-400 hover:text-white transition">
+            Close
+          </button>
+          <button type="submit" id="claimSubmitBtn" class="pixel-tap apple-liquid-btn px-6 py-2.5 text-xs font-bold">
+            Run AI Verification
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- ==============================================================
+       MODAL 3: CAMPUS LOSS VULNERABILITY ANALYTICS HEATMAP
+  =============================================================== -->
+  <div id="analyticsModal" class="apple-sheet-backdrop">
+    <div class="apple-sheet-card p-6 sm:p-8">
+      
+      <div class="apple-sheet-handle"></div>
+
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+        <div>
+          <span class="apple-capsule text-cyan-300 border-cyan-400/30 bg-cyan-950/40">Predictive Analytics</span>
+          <h3 class="text-xl font-bold text-white tracking-tight mt-1">Campus Vulnerability Heatmap</h3>
+          <p class="text-xs text-slate-400">Statistical risk analysis: which places are most vulnerable to losing specific items</p>
+        </div>
+        <button onclick="closeAnalyticsModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-4" id="analyticsZonesList"></div>
+
+      <div class="pt-4 border-t border-white/10 flex justify-end">
+        <button onclick="closeAnalyticsModal()" class="pixel-tap px-6 py-2 rounded-full bg-white/10 text-white text-xs font-semibold hover:bg-white/15 transition">
+          Close Heatmap
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script src="app.js" defer></script>
+</body>
+</html>

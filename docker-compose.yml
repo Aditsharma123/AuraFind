@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lostfound_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-lostfound_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-lostfound_secure_pass}
+      POSTGRES_DB: ${DB_NAME:-lostandfound}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - lostfound_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-lostfound_user} -d ${DB_NAME:-lostandfound}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Visual Database GUI for your teammate to view & inspect entries easily
+  adminer:
+    image: adminer:latest
+    container_name: lostfound_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - lostfound_net
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  lostfound_net:
+    driver: bridge

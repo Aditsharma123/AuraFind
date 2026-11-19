@@ -1,0 +1,436 @@
+/* ==========================================================================
+   AuraFind — Authentic Apple Liquid Glass (visionOS 2.0 & Dribbble Liquid Glass)
+   Continuous Liquid Physics, Sliding Glass Bubbles, and 120FPS Compositing
+   ========================================================================== */
+
+:root {
+  /* Apple Vision & Liquid Glass Color Tokens */
+  --liquid-base: #04060d;
+  --liquid-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.015) 50%, rgba(255, 255, 255, 0.05) 100%);
+  --liquid-card-bg-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.08) 100%);
+  --liquid-dock-bg: rgba(14, 20, 36, 0.68);
+  
+  /* Specular Highlight Borders (Apple Liquid Refraction) */
+  --liquid-rim: rgba(255, 255, 255, 0.18);
+  --liquid-rim-hover: rgba(255, 255, 255, 0.32);
+  --liquid-specular-top: rgba(255, 255, 255, 0.45);
+  --liquid-specular-bottom: rgba(0, 0, 0, 0.4);
+
+  /* Bioluminescent Liquid Accents */
+  --accent-cyan: #00f2fe;
+  --accent-indigo: #6366f1;
+  --accent-violet: #8b5cf6;
+  --accent-emerald: #10b981;
+  --accent-rose: #f43f5e;
+  --accent-amber: #f59e0b;
+
+  /* True Apple Spring Curves */
+  --apple-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --apple-tap-spring: cubic-bezier(0.2, 0, 0, 1);
+  --apple-sheet-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* -------------------------------------------------------------
+   Typography: Authentic Apple SF Pro Hierarchy
+-------------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--liquid-base);
+  color: #f8fafc;
+  min-height: 100vh;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  letter-spacing: -0.015em;
+}
+
+/* -------------------------------------------------------------
+   Luminous Fluid Ambient Mesh (High Performance GPU Layer)
+-------------------------------------------------------------- */
+.ambient-glow-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  contain: strict;
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+  opacity: 0.55;
+  animation: floatOrb 22s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+}
+
+.orb-cyan {
+  width: 520px;
+  height: 520px;
+  top: -100px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.28) 0%, rgba(99, 102, 241, 0.15) 60%, transparent 80%);
+}
+
+.orb-violet {
+  width: 600px;
+  height: 600px;
+  top: 30%;
+  right: -120px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, rgba(6, 182, 212, 0.12) 60%, transparent 80%);
+  animation-duration: 26s;
+}
+
+.orb-emerald {
+  width: 480px;
+  height: 480px;
+  bottom: -60px;
+  left: 20%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(99, 102, 241, 0.12) 60%, transparent 80%);
+  animation-duration: 30s;
+}
+
+@keyframes floatOrb {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(25px, 30px, 0) scale(1.06); }
+  100% { transform: translate3d(-20px, -25px, 0) scale(0.96); }
+}
+
+/* -------------------------------------------------------------
+   Apple Vision / Liquid Glass Cards
+-------------------------------------------------------------- */
+.apple-liquid-card {
+  position: relative;
+  background: var(--liquid-card-bg);
+  backdrop-filter: blur(40px) saturate(210%) brightness(105%);
+  -webkit-backdrop-filter: blur(40px) saturate(210%) brightness(105%);
+  border: 1px solid var(--liquid-rim);
+  border-radius: 28px;
+  box-shadow: 
+    0 24px 60px -12px rgba(0, 0, 0, 0.65),
+    0 0 40px -8px rgba(6, 182, 212, 0.1),
+    inset 0 1.5px 1px 0 var(--liquid-specular-top),
+    inset 0 -1.5px 1px 0 var(--liquid-specular-bottom);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.3s var(--apple-spring), 
+              border-color 0.3s ease, 
+              box-shadow 0.3s var(--apple-spring),
+              background 0.3s ease;
+  overflow: hidden;
+}
+
+/* Glowing Refractive Top Sheen */
+.apple-liquid-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.65) 25%, 
+    rgba(0, 242, 254, 0.65) 75%, 
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+@media (hover: hover) {
+  .apple-liquid-card:hover {
+    transform: translate3d(0, -6px, 0);
+    border-color: var(--liquid-rim-hover);
+    background: var(--liquid-card-bg-hover);
+    box-shadow: 
+      0 32px 70px -15px rgba(0, 0, 0, 0.75),
+      0 0 50px -5px rgba(0, 242, 254, 0.22),
+      inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -1.5px 1px 0 var(--liquid-specular-bottom);
+  }
+}
+
+/* Staggered Card Enter Transition (No Sudden Flash) */
+.apple-card-enter {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0) scale(0.97);
+  animation: appleCardReveal 0.45s var(--apple-spring) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes appleCardReveal {
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Feed Container Smooth Crossfade State */
+#incidentsFeed {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+#incidentsFeed.feed-transitioning {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+}
+
+/* -------------------------------------------------------------
+   Apple Liquid Floating Dock & PHYSICAL SLIDING GLASS BUBBLE
+   Glides seamlessly across tabs with spring physics
+-------------------------------------------------------------- */
+.apple-liquid-dock {
+  position: relative;
+  background: var(--liquid-dock-bg);
+  backdrop-filter: blur(35px) saturate(200%);
+  -webkit-backdrop-filter: blur(35px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+  padding: 4px;
+  box-shadow: 
+    0 16px 40px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35);
+  display: inline-flex;
+  gap: 3px;
+  isolation: isolate;
+}
+
+/* The physical glass pill that glides across without flashing */
+.liquid-slider-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 1;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease;
+  will-change: transform, width, height;
+}
+
+.apple-segment-btn {
+  position: relative;
+  z-index: 2; /* Text floats above the sliding glass bubble */
+  padding: 7px 18px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  border: none;
+  background: transparent !important; /* Button background is always transparent */
+  cursor: pointer;
+  transition: color 0.25s ease, text-shadow 0.25s ease;
+  letter-spacing: -0.01em;
+  user-select: none;
+}
+
+.apple-segment-btn:hover {
+  color: #ffffff;
+}
+
+.apple-segment-btn.active {
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+/* -------------------------------------------------------------
+   Pixel-Fluid Tactile Press
+-------------------------------------------------------------- */
+.pixel-tap {
+  transform: translate3d(0, 0, 0) scale(1);
+  transition: transform 0.12s var(--apple-tap-spring), filter 0.12s ease;
+  user-select: none;
+}
+.pixel-tap:active {
+  transform: translate3d(0, 0, 0) scale(0.96);
+  filter: brightness(0.9);
+}
+
+/* -------------------------------------------------------------
+   Apple Vision Primary Liquid Action Button
+-------------------------------------------------------------- */
+.apple-liquid-btn {
+  background: linear-gradient(180deg, #06b6d4 0%, #4f46e5 100%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 10px 24px -4px rgba(6, 182, 212, 0.45),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s var(--apple-spring);
+}
+
+.apple-liquid-btn:hover {
+  box-shadow: 
+    0 14px 30px -4px rgba(6, 182, 212, 0.6),
+    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.8);
+  filter: brightness(1.08);
+}
+
+/* -------------------------------------------------------------
+   Apple Sheet Modal with Deep Frost Blur (Jerk-Free Opening)
+-------------------------------------------------------------- */
+.apple-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(2, 4, 10, 0.74);
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.32s var(--apple-spring), visibility 0.32s ease;
+}
+
+.apple-sheet-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.apple-sheet-card {
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 32px;
+  background: linear-gradient(135deg, rgba(18, 24, 40, 0.9) 0%, rgba(10, 14, 26, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 
+    0 30px 80px -20px rgba(0, 0, 0, 0.85),
+    0 0 50px -10px rgba(6, 182, 212, 0.2),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.5);
+  transform: translate3d(0, 32px, 0) scale(0.96);
+  opacity: 0;
+  transition: transform 0.38s var(--apple-spring), opacity 0.32s ease;
+  will-change: transform, opacity;
+}
+
+.apple-sheet-backdrop.active .apple-sheet-card {
+  transform: translate3d(0, 0, 0) scale(1);
+  opacity: 1;
+}
+
+.apple-sheet-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.28);
+  margin: 0 auto 14px auto;
+}
+
+/* -------------------------------------------------------------
+   Apple Liquid Glass Inputs & Sanity States
+-------------------------------------------------------------- */
+.apple-input {
+  width: 100%;
+  padding: 11px 15px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apple-input:focus {
+  border-color: var(--accent-cyan);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 0 0 3px rgba(0, 242, 254, 0.25),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.apple-input.input-error {
+  border-color: var(--accent-rose) !important;
+  box-shadow: 
+    0 0 0 3px rgba(244, 63, 94, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.apple-input.input-valid {
+  border-color: var(--accent-emerald) !important;
+  box-shadow: 
+    0 0 0 3px rgba(16, 185, 129, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Apple Liquid Capsule Badges */
+.apple-capsule {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+/* AI Confidence Meter */
+.ai-confidence-bar {
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.ai-confidence-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #6366f1, #00f2fe, #10b981);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.6);
+  transition: width 0.6s var(--apple-spring);
+}
+
+/* -------------------------------------------------------------
+   Completely Hide Scrollbars Globally Across All Displays & Modals
+   Preserves smooth touch and wheel scrolling with zero visual scrollbar tracks
+-------------------------------------------------------------- */
+html, body, * {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
