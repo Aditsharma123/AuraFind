@@ -1,38 +1,43 @@
 /* ==========================================================================
-   AuraFind — Apple Liquid Application Logic & AI Semantic Matching Engine
+   AuraFind — Apple Liquid Application Logic, AI Matcher & Google Drive Sync
    ========================================================================== */
+
+// 👇 PASTE YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL HERE
+const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 // --------------------------------------------------------------------------
 // 1. ADVANCED DATA SANITY & ANTI-GIBBERISH VALIDATION ENGINE
-// Stops random keyboard mashing (e.g. gwbduygc, cgbdfd, dgjhcgcfjgcn, 5647)
 // --------------------------------------------------------------------------
 const SanityEngine = {
-  // Known disposable / temporary email domains
   susDomains: [
     'tnjhg.com', 'tempmail.com', '10minutemail.com', 'mailinator.com',
     'guerrillamail.com', 'trashmail.com', 'sharklasers.com', 'throwawaymail.com',
     'dispostable.com', 'fakeinbox.com', 'yopmail.com', 'getairmail.com', 'temp-mail.org'
   ],
 
-  // Keyboard row walking patterns (horizontal and vertical keyboard mashing)
+  validCompounds: new Set([
+    'lockscreen', 'touchscreen', 'screenshot', 'smartphone', 'smartwatch', 'wristwatch',
+    'headphones', 'earphones', 'earbuds', 'bluetooth', 'trackpad', 'keyboard', 'keychain',
+    'macbook', 'thinkpad', 'ultrabook', 'notebook', 'backpack', 'matchstick', 'nightclub',
+    'strengths', 'rhythm', 'length', 'catchphrase', 'blacksmith', 'corkscrew', 'drawstring',
+    'downstream', 'hardcore', 'landscape', 'charging', 'lightning', 'thunderbolt', 'wallpaper'
+  ]),
+
   keyboardWalks: [
     'asdf', 'sdfg', 'dfgh', 'fghj', 'ghjk', 'hjkl',
     'qwer', 'wert', 'erty', 'rtyu', 'tyui', 'yuio', 'uiop',
     'zxcv', 'xcvb', 'cvbn', 'vbnm', '1234', '2345', '3456', '7890'
   ],
 
-  // Core Gibberish / Keyboard-Mash Detector
   isGibberish(text) {
     if (!text || typeof text !== 'string') return { isBad: true, reason: 'Field cannot be empty' };
     const trimmed = text.trim();
     if (trimmed.length < 2) return { isBad: true, reason: 'Too short (minimum 2 characters)' };
 
-    // 1. Detect 3+ repeated identical characters (e.g. 'aaaa', 'xxxx')
     if (/(.)\1{2,}/i.test(trimmed)) {
       return { isBad: true, reason: 'Contains unnatural repeated characters' };
     }
 
-    // 2. Detect common keyboard row mashing
     const lower = trimmed.toLowerCase();
     for (const walk of this.keyboardWalks) {
       if (lower.includes(walk)) {
@@ -40,34 +45,48 @@ const SanityEngine = {
       }
     }
 
-    // 3. Word-by-word Linguistic & Consonant Cluster Analysis
-    const words = trimmed.split(/[\s\-_,\.]+/).filter(w => w.length > 0);
+    const words = trimmed.split(/[\s\-_,\.\?\/]+/).filter(w => w.length > 0);
     const vowels = new Set(['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U']);
 
     for (const word of words) {
-      const lettersOnly = word.replace(/[^a-zA-Z]/g, '');
+      const lettersOnly = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
       if (lettersOnly.length < 3) continue;
+      if (this.validCompounds.has(lettersOnly)) continue;
 
-      // Rule A: 4 or more consecutive consonants without a vowel
-      // Catches: gwbduygc (gwbd), cgbdfd (6), gvkgf (5), dhnhdfc (7), dgjhcgcfjgcn (12 consonants!)
-      const consonantClusterMatch = lettersOnly.match(/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]{4,}/);
-      if (consonantClusterMatch) {
-        return { 
-          isBad: true, 
-          reason: `Keyboard mashing detected in '${word}' (consonant cluster '${consonantClusterMatch[0]}')` 
-        };
-      }
-
-      // Rule B: Vowel-to-length ratio for words >= 4 letters
       let vowelCount = 0;
       for (const ch of lettersOnly) {
-        if (vowels.has(ch) || ch === 'y' || ch === 'Y') vowelCount++;
+        if (vowels.has(ch) || ch === 'y') vowelCount++;
       }
       const vowelRatio = vowelCount / lettersOnly.length;
-      if (vowelRatio < 0.18) {
+
+      if (vowelCount === 0) {
+        return { isBad: true, reason: `'${word}' is not a real word (contains zero vowels)` };
+      }
+      if (lettersOnly.length >= 4 && vowelRatio < 0.18) {
         return { 
           isBad: true, 
           reason: `'${word}' is not a valid word (lacks vowels, ${Math.round(vowelRatio * 100)}% vowels)` 
+        };
+      }
+      const extremeMatch = lettersOnly.match(/[bcdfghjklmnpqrstvwxz]{6,}/);
+      if (extremeMatch) {
+        return { 
+          isBad: true, 
+          reason: `Keyboard mashing detected in '${word}' (excessive consonant sequence '${extremeMatch[0]}')` 
+        };
+      }
+      const startCluster = lettersOnly.match(/^[bcdfghjklmnpqrstvwxz]{4,}/);
+      if (startCluster) {
+        return { 
+          isBad: true, 
+          reason: `Keyboard mashing detected in '${word}' (unnatural start consonants '${startCluster[0]}')` 
+        };
+      }
+      const midCluster = lettersOnly.match(/[bcdfghjklmnpqrstvwxz]{4,}/);
+      if (midCluster && vowelRatio < 0.25) {
+        return { 
+          isBad: true, 
+          reason: `Keyboard mashing detected in '${word}' (consonant cluster '${midCluster[0]}')` 
         };
       }
     }
@@ -75,7 +94,6 @@ const SanityEngine = {
     return { isBad: false };
   },
 
-  // Field Specific Validations
   validateTitle(title) {
     const check = this.isGibberish(title);
     if (check.isBad) return { valid: false, message: `Invalid Item Title: ${check.reason}` };
@@ -96,8 +114,6 @@ const SanityEngine = {
 
   validatePhone(phone) {
     const cleaned = (phone || '').replace(/[\s\-\(\)]/g, '');
-    
-    // Check for dummy repetitions
     const dummyPatterns = [
       /^0{10}$/, /^1{10}$/, /^9{10}$/,
       /^1234567890$/, /^0123456789$/, /^9876543210$/
@@ -105,15 +121,11 @@ const SanityEngine = {
     if (dummyPatterns.some(pat => pat.test(cleaned))) {
       return { valid: false, message: 'Please provide a genuine, callable phone number.' };
     }
-
-    // Indian mobile standard (10 digits starting with 6-9) or International E.164
     const indianMobileRegex = /^[6-9]\d{9}$/;
     const internationalRegex = /^\+?[1-9]\d{9,13}$/;
-
     if (!indianMobileRegex.test(cleaned) && !internationalRegex.test(cleaned)) {
       return { valid: false, message: 'Invalid phone number. Must be a 10-digit callable number or international (+country).' };
     }
-
     return { valid: true, sanitized: cleaned };
   },
 
@@ -130,26 +142,20 @@ const SanityEngine = {
     if (this.susDomains.includes(domain)) {
       return { valid: false, message: `Disposable email domain (@${domain}) is blocked.` };
     }
-
-    // Check if domain or username is gibberish
     const domainCheck = this.isGibberish(domain.split('.')[0]);
     if (domainCheck.isBad) {
       return { valid: false, message: `Suspicious email host (@${domain}) rejected.` };
     }
-
     const userCheck = this.isGibberish(userPart);
     if (userCheck.isBad && userPart.length > 5) {
       return { valid: false, message: `Suspicious email username '${userPart}': ${userCheck.reason}` };
     }
-
     return { valid: true, sanitized: trimmed };
   },
 
   validateBatch(batch) {
     const trimmed = (batch || '').trim();
     if (!trimmed) return { valid: false, message: 'Batch/Year is required.' };
-
-    // If pure 4-digit number (e.g. 5647 vs 2024)
     if (/^\d{4}$/.test(trimmed)) {
       const year = parseInt(trimmed, 10);
       if (year < 2018 || year > 2032) {
@@ -157,19 +163,14 @@ const SanityEngine = {
       }
       return { valid: true, sanitized: `${year} Batch` };
     }
-
-    // If string description, check if it contains year/sem or realistic terms
     const lower = trimmed.toLowerCase();
     const hasBatchTerms = /year|batch|sem|class|b\.?tech|m\.?tech|mba|bca|mca|bba|phd|first|second|third|final/i.test(lower);
     const hasDigits = /\d/.test(trimmed);
-
     if (!hasBatchTerms && !hasDigits) {
       return { valid: false, message: 'Please specify your year/batch (e.g. 3rd Year B.Tech, 2024 Batch).' };
     }
-
     const check = this.isGibberish(trimmed);
     if (check.isBad) return { valid: false, message: `Invalid Batch/Year: ${check.reason}` };
-
     return { valid: true, sanitized: trimmed };
   },
 
@@ -189,18 +190,14 @@ const SanityEngine = {
 
 // --------------------------------------------------------------------------
 // 2. AI / ML SEMANTIC SIMILARITY & DISCREPANCY MATCHING ENGINE
-// Handles "Mount Fuji" == "Mountain", "Aqua" == "Cyan/Blue/Green", "Type-C" == "USB C"
 // --------------------------------------------------------------------------
 const SemanticAiMatcher = {
   thesaurus: {
-    // Nature & Wallpapers
     "mountain": ["mount fuji", "fuji", "himalayas", "everest", "snow peak", "hills", "nature", "alps", "snowy mountain", "rocky mountain"],
     "mount fuji": ["mountain", "fuji", "snow peak", "nature landscape", "japan peak"],
     "ocean": ["sea", "beach", "waves", "water", "marine"],
     "anime": ["manga", "naruto", "goku", "one piece", "demon slayer", "cartoon", "character"],
     "space": ["stars", "galaxy", "spaceman", "astronaut", "universe", "nebula", "black"],
-    
-    // Colors & Shades
     "aqua": ["cyan", "teal", "light blue", "turquoise", "sky blue", "blue", "greenish blue", "sea green"],
     "cyan": ["aqua", "teal", "light blue", "turquoise", "sky blue", "blue"],
     "teal": ["aqua", "cyan", "dark cyan", "greenish blue", "sea green"],
@@ -210,13 +207,9 @@ const SemanticAiMatcher = {
     "black": ["midnight", "matte black", "dark", "charcoal", "pitch black", "jet black", "space grey"],
     "white": ["silver", "starlight", "pearl", "chalk", "light grey"],
     "silver": ["white", "grey", "space grey", "aluminum", "metallic"],
-    
-    // Ports & Tech Specs
     "type c": ["usb-c", "usbc", "type-c", "c-type", "thunderbolt", "type c cable"],
     "usb-c": ["type c", "usbc", "type-c", "thunderbolt", "c type"],
     "lightning": ["apple lightning", "iphone cable", "8 pin"],
-    
-    // Materials & Textures
     "matte": ["frosted", "textured", "anti-glare", "rough", "brushed"],
     "glossy": ["shiny", "reflective", "glass", "smooth"],
     "aluminum": ["metal", "metallic", "alloy", "silver body"]
@@ -254,12 +247,10 @@ const SemanticAiMatcher = {
     const r = (reportedText || '').toLowerCase().trim();
     const c = (claimedText || '').toLowerCase().trim();
 
-    // 1. Direct match
     if (r === c || r.includes(c) || c.includes(r)) {
       return { score: 1.0, reason: "Direct semantic match" };
     }
 
-    // 2. Thesaurus / Taxonomy cluster match
     const rSynonyms = this.thesaurus[r] || [];
     const cSynonyms = this.thesaurus[c] || [];
 
@@ -275,7 +266,6 @@ const SemanticAiMatcher = {
       return { score: 0.88, reason: `Both terms map to common cluster [${intersection[0]}]` };
     }
 
-    // 3. Typo / Levenshtein similarity
     const fuzzy = this.textSimilarity(r, c);
     if (fuzzy >= 0.70) {
       return { score: Math.round(fuzzy * 100) / 100, reason: "Fuzzy character match (typo tolerance)" };
@@ -287,7 +277,7 @@ const SemanticAiMatcher = {
 
 
 // --------------------------------------------------------------------------
-// 3. SEEDED DATABASE & STATE
+// 3. SEEDED FALLBACK DATABASE & CLOUD STATE
 // --------------------------------------------------------------------------
 let incidents = [
   {
@@ -306,62 +296,15 @@ let incidents = [
     guardLocation: null,
     locationZone: "cafeteria",
     status: "open",
-    createdAt: "2 hours ago",
+    createdAt: "Sample Item",
     questions: [
       { q: "What is the charging cable / port type?", a: "lightning" },
       { q: "What is the lockscreen wallpaper?", a: "mount fuji" },
       { q: "What color is the silicone case?", a: "aqua" }
     ]
-  },
-  {
-    id: 2,
-    type: "found",
-    title: "Dell XPS 15 (Silver Aluminum)",
-    category: "Laptops",
-    imageUrl: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=600&auto=format&fit=crop&q=80",
-    reporterName: "Priya Nair",
-    reporterEmail: "priya.n@campus.edu",
-    reporterBatch: "2025 / 2nd Year MBA",
-    reporterPhone: "+91 91234 56789",
-    residenceType: "dayscholar",
-    hostelFloor: null,
-    hostelRoom: null,
-    guardLocation: "Central Library Security Booth",
-    locationZone: "library",
-    status: "open",
-    createdAt: "5 hours ago",
-    questions: [
-      { q: "What charging adapter wattage was with it?", a: "130w type c" },
-      { q: "What stickers are on the back lid?", a: "docker and github" },
-      { q: "What is the laptop body texture/finish?", a: "matte silver aluminum" }
-    ]
-  },
-  {
-    id: 3,
-    type: "lost",
-    title: "Sony WH-1000XM4 Noise Cancelling",
-    category: "Accessories",
-    imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
-    reporterName: "Aditya Verma",
-    reporterEmail: "aditya.v@campus.edu",
-    reporterBatch: "2024 / 3rd Year ECE",
-    reporterPhone: "+91 98111 22334",
-    residenceType: "hostel",
-    locationZone: "classroom",
-    lostDetails: {
-      brand: "Sony",
-      material: "Matte black plastic with copper accents",
-      observableWallpaper: "N/A (Audio gear)",
-      observableColor: "Matte Black",
-      lastSeenLocation: "Lecture Hall 302, 3rd row desk",
-      timestampLost: "Today, ~11:30 AM"
-    },
-    status: "searching",
-    createdAt: "1 hour ago"
   }
 ];
 
-// Campus Analytics & Vulnerability Matrix Data
 const campusVulnerabilityData = {
   zones: [
     {
@@ -416,38 +359,109 @@ const campusVulnerabilityData = {
   ]
 };
 
-let currentTab = "found"; // "found" | "lost"
+let currentTab = "found";
 let currentCategoryFilter = "all";
 let activeClaimIncident = null;
-let uploadedImageBase64 = null;
+let uploadedImageMeta = null; // Stores { base64, name, type, dataUrl }
 
 
 // --------------------------------------------------------------------------
-// 4. UI INITIALIZATION & LIQUID SLIDING GLASS ENGINE
+// 4. CLOUD SYNC ENGINE (FETCH & PUSH TO GOOGLE SHEETS / DRIVE)
+// --------------------------------------------------------------------------
+async function fetchLiveIncidentsFromCloud() {
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_APPS_SCRIPT")) {
+    console.warn("Google Script URL not set yet. Running in local demo mode.");
+    return;
+  }
+
+  const container = document.getElementById("incidentsFeed");
+  if (container) {
+    container.innerHTML = `
+      <div class="col-span-full py-16 text-center apple-liquid-card rounded-3xl p-8">
+        <p class="text-sm text-cyan-300 animate-pulse">Syncing live campus feed from Google Drive...</p>
+      </div>
+    `;
+  }
+
+  try {
+    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const json = await response.json();
+    if (json.result === "success" && Array.isArray(json.data)) {
+      // Merge cloud items (if cloud has rows, replace demo items)
+      if (json.data.length > 0) {
+        incidents = json.data;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch cloud incidents:", error);
+  } finally {
+    renderFeed();
+  }
+}
+
+async function saveIncidentToCloud(newItem, imageMeta) {
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_APPS_SCRIPT")) {
+    return { result: "local_only" };
+  }
+
+  const formData = new FormData();
+  formData.append("id", newItem.id);
+  formData.append("type", newItem.type);
+  formData.append("title", newItem.title);
+  formData.append("category", newItem.category);
+  formData.append("imageUrl", newItem.imageUrl);
+  formData.append("reporterName", newItem.reporterName);
+  formData.append("reporterEmail", newItem.reporterEmail);
+  formData.append("reporterBatch", newItem.reporterBatch);
+  formData.append("reporterPhone", newItem.reporterPhone);
+  formData.append("residenceType", newItem.residenceType || "");
+  formData.append("hostelFloor", newItem.hostelFloor || "");
+  formData.append("hostelRoom", newItem.hostelRoom || "");
+  formData.append("guardLocation", newItem.guardLocation || "");
+  formData.append("locationZone", newItem.locationZone || "");
+  formData.append("status", newItem.status);
+  formData.append("questionsJson", JSON.stringify(newItem.questions || []));
+  formData.append("lostDetailsJson", JSON.stringify(newItem.lostDetails || null));
+
+  // Attach Base64 image data for Google Drive upload
+  if (imageMeta && imageMeta.base64) {
+    formData.append("imageBase64", imageMeta.base64);
+    formData.append("imageName", imageMeta.name);
+    formData.append("imageType", imageMeta.type);
+  }
+
+  const response = await fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    body: formData
+  });
+
+  return await response.json();
+}
+
+
+// --------------------------------------------------------------------------
+// 5. UI INITIALIZATION & LIQUID SLIDING GLASS ENGINE
 // --------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   renderFeed();
+  fetchLiveIncidentsFromCloud(); // Pull live global data on page load
   populateDefaultQuestions();
   setupLiveFormValidation();
   
-  // Realignment passes ensuring sub-pixel centering across all display scalings (100%, 125%, Retina)
   requestAnimationFrame(() => refreshAllLiquidSliders(true));
   setTimeout(() => refreshAllLiquidSliders(true), 50);
   setTimeout(() => refreshAllLiquidSliders(true), 200);
 
-  // Auto-realign on window resize or orientation shift
   window.addEventListener("resize", () => {
     refreshAllLiquidSliders(true);
   });
 
-  // Realign once custom system fonts finish measuring typography metrics
   if (document.fonts) {
     document.fonts.ready.then(() => {
       refreshAllLiquidSliders(true);
     });
   }
 
-  // Observe dock elements directly with ResizeObserver for responsive flex/grid adaptations
   if (window.ResizeObserver) {
     const dockObserver = new ResizeObserver(() => {
       refreshAllLiquidSliders(true);
@@ -458,7 +472,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// The Apple Liquid Sliding Pill Controller (100% Centered Sub-Pixel Accuracy)
 function updateLiquidSlider(dock, activeBtn, immediate = false) {
   if (!dock || !activeBtn) return;
 
@@ -469,7 +482,6 @@ function updateLiquidSlider(dock, activeBtn, immediate = false) {
     dock.appendChild(pill);
   }
 
-  // Use exact offsetLeft/offsetTop relative to the dock container
   const left = activeBtn.offsetLeft;
   const top = activeBtn.offsetTop;
   const width = activeBtn.offsetWidth;
@@ -487,41 +499,24 @@ function updateLiquidSlider(dock, activeBtn, immediate = false) {
   pill.style.opacity = "1";
 
   if (immediate) {
-    pill.offsetHeight; // Force reflow
+    pill.offsetHeight;
     pill.style.transition = "";
   }
 }
 
 function refreshAllLiquidSliders(immediate = false) {
-  const mainDock = document.getElementById("mainTabDock");
-  if (mainDock) {
-    const active = mainDock.querySelector(".apple-segment-btn.active");
-    if (active) updateLiquidSlider(mainDock, active, immediate);
-  }
-
-  const mobileDock = document.getElementById("mobileTabDock");
-  if (mobileDock) {
-    const active = mobileDock.querySelector(".apple-segment-btn.active");
-    if (active) updateLiquidSlider(mobileDock, active, immediate);
-  }
-
-  const catDock = document.getElementById("catFilterDock");
-  if (catDock) {
-    const active = catDock.querySelector(".apple-segment-btn.active");
-    if (active) updateLiquidSlider(catDock, active, immediate);
-  }
-
-  const reportDock = document.getElementById("reportModeDock");
-  if (reportDock) {
-    const active = reportDock.querySelector(".apple-segment-btn.active");
-    if (active) updateLiquidSlider(reportDock, active, immediate);
-  }
+  ["mainTabDock", "mobileTabDock", "catFilterDock", "reportModeDock"].forEach(id => {
+    const dock = document.getElementById(id);
+    if (dock) {
+      const active = dock.querySelector(".apple-segment-btn.active");
+      if (active) updateLiquidSlider(dock, active, immediate);
+    }
+  });
 }
 
 function switchMainTab(tab) {
   currentTab = tab;
   
-  // Desktop header dock
   const btnFound = document.getElementById("tabBtnFound");
   const btnLost = document.getElementById("tabBtnLost");
   if (btnFound && btnLost) {
@@ -530,7 +525,6 @@ function switchMainTab(tab) {
     updateLiquidSlider(document.getElementById("mainTabDock"), tab === "found" ? btnFound : btnLost);
   }
 
-  // Mobile dock
   const mobileDock = document.getElementById("mobileTabDock");
   if (mobileDock) {
     const btns = mobileDock.querySelectorAll(".apple-segment-btn");
@@ -571,12 +565,10 @@ function filterCategory(cat) {
   renderFeed();
 }
 
-// Staggered Feed Renderer (Dissolves previous cards, smoothly reveals new ones)
 function renderFeed() {
   const container = document.getElementById("incidentsFeed");
   if (!container) return;
 
-  // Gentle fade out
   container.classList.add("feed-transitioning");
 
   setTimeout(() => {
@@ -668,7 +660,7 @@ function createIncidentCard(item, index) {
       </div>
     `;
   } else {
-    const ld = item.lostDetails;
+    const ld = item.lostDetails || {};
     card.innerHTML = `
       <div>
         <div class="relative w-full h-44 bg-slate-900 overflow-hidden">
@@ -692,11 +684,11 @@ function createIncidentCard(item, index) {
 
           <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs space-y-1 mb-3 shadow-inner">
             <div class="text-[11px] text-slate-400">Identifiable Traits (Non-sensitive):</div>
-            <div class="text-slate-200"><strong>Brand:</strong> ${ld.brand} • <strong>Finish:</strong> ${ld.material}</div>
-            <div class="text-slate-200"><strong>Color/Case:</strong> ${ld.observableColor}</div>
-            <div class="text-slate-200"><strong>Wallpaper:</strong> ${ld.observableWallpaper}</div>
+            <div class="text-slate-200"><strong>Brand:</strong> ${ld.brand || ''} • <strong>Finish:</strong> ${ld.material || ''}</div>
+            <div class="text-slate-200"><strong>Color/Case:</strong> ${ld.observableColor || ''}</div>
+            <div class="text-slate-200"><strong>Wallpaper:</strong> ${ld.observableWallpaper || ''}</div>
             <div class="text-[11px] text-cyan-300/90 pt-1 border-t border-white/10">
-              📍 Last Seen: ${ld.lastSeenLocation}
+              📍 Last Seen: ${ld.lastSeenLocation || ''}
             </div>
           </div>
 
@@ -722,7 +714,7 @@ function createIncidentCard(item, index) {
 
 
 // --------------------------------------------------------------------------
-// 5. LIVE REAL-TIME DATA SANITY LISTENERS & FEEDBACK
+// 6. LIVE REAL-TIME DATA SANITY LISTENERS
 // --------------------------------------------------------------------------
 function setupLiveFormValidation() {
   const watchInput = (id, validateFn) => {
@@ -734,7 +726,6 @@ function setupLiveFormValidation() {
     };
     el.addEventListener("blur", handler);
     el.addEventListener("input", () => {
-      // Clear error immediately when user begins correcting
       if (el.classList.contains("input-error")) handler();
     });
   };
@@ -745,7 +736,6 @@ function setupLiveFormValidation() {
   watchInput("reporterPhone", v => SanityEngine.validatePhone(v));
   watchInput("reporterBatch", v => SanityEngine.validateBatch(v));
   
-  // Lost specific fields
   watchInput("lostBrand", v => SanityEngine.validateDescriptiveField("Brand", v, 2));
   watchInput("lostMaterial", v => SanityEngine.validateDescriptiveField("Material/Finish", v, 3));
   watchInput("lostWallpaper", v => SanityEngine.validateDescriptiveField("Wallpaper", v, 3));
@@ -801,7 +791,7 @@ function clearSanityAlertBanner() {
 
 
 // --------------------------------------------------------------------------
-// 6. REPORT INCIDENT MODAL (FOUND VS LOST TOGGLE)
+// 7. REPORT INCIDENT MODAL & CLOUD SUBMISSION
 // --------------------------------------------------------------------------
 let reportMode = "found";
 
@@ -832,9 +822,7 @@ function switchReportMode(mode) {
   if (btnFound && btnLost) {
     btnFound.classList.toggle("active", mode === "found");
     btnLost.classList.toggle("active", mode === "lost");
-    if (dock) {
-      updateLiquidSlider(dock, mode === "found" ? btnFound : btnLost);
-    }
+    if (dock) updateLiquidSlider(dock, mode === "found" ? btnFound : btnLost);
   }
 
   const foundFields = document.getElementById("foundSpecificFields");
@@ -863,14 +851,21 @@ function toggleResidenceUI() {
   }
 }
 
+// Extracts both preview URL and raw Base64 + MIME type for Google Drive upload
 function previewIncidentImage(e) {
   const file = e.target.files[0];
   if (file) {
     const reader = new FileReader();
     reader.onload = function(evt) {
-      uploadedImageBase64 = evt.target.result;
+      const fullDataUrl = evt.target.result;
+      uploadedImageMeta = {
+        dataUrl: fullDataUrl,
+        base64: fullDataUrl.split(',')[1],
+        name: file.name,
+        type: file.type
+      };
       const img = document.getElementById("previewImg");
-      img.src = uploadedImageBase64;
+      img.src = fullDataUrl;
       img.classList.remove("hidden");
       document.getElementById("previewPlaceholder").classList.add("hidden");
     };
@@ -914,12 +909,10 @@ function addCustomQuestion() {
   appendQuestionField(count + 1, "", "");
 }
 
-// Comprehensive Form Submission Validator
-function handleReportSubmit(e) {
+async function handleReportSubmit(e) {
   e.preventDefault();
   clearSanityAlertBanner();
 
-  // 1. Validate Core Identity Fields
   const titleVal = SanityEngine.validateTitle(document.getElementById("itemTitle").value);
   const nameVal = SanityEngine.validateName(document.getElementById("reporterName").value);
   const emailVal = SanityEngine.validateEmail(document.getElementById("reporterEmail").value);
@@ -936,9 +929,11 @@ function handleReportSubmit(e) {
   const title = titleVal.valid ? titleVal.sanitized : "";
   const category = document.getElementById("itemCategory").value;
   const zone = document.getElementById("locationZoneSelect").value;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+
+  let newItem = null;
 
   if (reportMode === "found") {
-    // Validate Security Questions
     const questions = [];
     const rows = document.querySelectorAll(".question-row");
     rows.forEach((row, i) => {
@@ -963,12 +958,12 @@ function handleReportSubmit(e) {
     const resType = document.querySelector('input[name="residenceType"]:checked').value;
     const isHostel = resType === "hostel";
 
-    const newItem = {
+    newItem = {
       id: Date.now(),
       type: "found",
       title: title,
       category: category,
-      imageUrl: uploadedImageBase64 || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80",
+      imageUrl: uploadedImageMeta ? uploadedImageMeta.dataUrl : "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80",
       reporterName: nameVal.sanitized,
       reporterEmail: emailVal.sanitized,
       reporterBatch: batchVal.sanitized,
@@ -982,11 +977,7 @@ function handleReportSubmit(e) {
       createdAt: "Just now",
       questions: questions
     };
-
-    incidents.unshift(newItem);
-    alert("🎉 Incident posted! Locked behind 3 AI-evaluated security questions.");
   } else {
-    // Mode: Lost Broadcast -> Validate all observable traits against gibberish
     const brandVal = SanityEngine.validateDescriptiveField("Brand / Company", document.getElementById("lostBrand").value, 2);
     const matVal = SanityEngine.validateDescriptiveField("Build Material", document.getElementById("lostMaterial").value, 3);
     const wallVal = SanityEngine.validateDescriptiveField("Observable Wallpaper", document.getElementById("lostWallpaper").value, 3);
@@ -1004,12 +995,12 @@ function handleReportSubmit(e) {
       return;
     }
 
-    const newItem = {
+    newItem = {
       id: Date.now(),
       type: "lost",
       title: `${title} (Lost Broadcast)`,
       category: category,
-      imageUrl: uploadedImageBase64 || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80",
+      imageUrl: uploadedImageMeta ? uploadedImageMeta.dataUrl : "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80",
       reporterName: nameVal.sanitized,
       reporterEmail: emailVal.sanitized,
       reporterBatch: batchVal.sanitized,
@@ -1026,18 +1017,43 @@ function handleReportSubmit(e) {
       status: "searching",
       createdAt: "Just now"
     };
-
-    incidents.unshift(newItem);
-    alert("📢 Missing device broadcast published! Protected by Data Sanity.");
   }
 
-  closeReportModal();
-  renderFeed();
+  // Push to Google Sheets & Google Drive
+  const originalBtnText = submitBtn.innerText;
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Uploading to Google Drive...";
+
+  try {
+    const cloudRes = await saveIncidentToCloud(newItem, uploadedImageMeta);
+    if (cloudRes && cloudRes.result === "success") {
+      newItem.imageUrl = cloudRes.imageUrl;
+      newItem.createdAt = cloudRes.createdAt || "Just now";
+    }
+    incidents.unshift(newItem);
+    uploadedImageMeta = null;
+    e.target.reset();
+    document.getElementById("previewImg").classList.add("hidden");
+    document.getElementById("previewPlaceholder").classList.remove("hidden");
+    
+    alert(reportMode === "found" 
+      ? "🎉 Incident & photo saved to Google Drive! Locked behind 3 AI security questions." 
+      : "📢 Missing device broadcast saved to Google Drive!");
+    
+    closeReportModal();
+    renderFeed();
+  } catch (err) {
+    console.error("Cloud save failed:", err);
+    alert("⚠️ Could not sync to Google Drive. Check your Web App URL or internet connection.");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = originalBtnText;
+  }
 }
 
 
 // --------------------------------------------------------------------------
-// 7. CLAIM & AI SEMANTIC VERIFICATION MODAL
+// 8. CLAIM & AI SEMANTIC VERIFICATION MODAL
 // --------------------------------------------------------------------------
 function openClaimModal(id) {
   activeClaimIncident = incidents.find(i => i.id === id);
@@ -1073,7 +1089,6 @@ function handleClaimSubmit(e) {
   e.preventDefault();
   if (!activeClaimIncident) return;
 
-  // Validate Claimer Sanity
   const nameVal = SanityEngine.validateName(document.getElementById("claimerName").value);
   const emailVal = SanityEngine.validateEmail(document.getElementById("claimerEmail").value);
   const phoneVal = SanityEngine.validatePhone(document.getElementById("claimerPhone").value);
@@ -1091,7 +1106,6 @@ function handleClaimSubmit(e) {
     const claimAns = input.value.trim();
     const expectedAns = activeClaimIncident.questions[idx].a.trim();
 
-    // Run AI Semantic Evaluation
     const evalRes = SemanticAiMatcher.evaluatePair(expectedAns, claimAns);
     totalScore += evalRes.score;
     evaluations.push({
@@ -1104,7 +1118,7 @@ function handleClaimSubmit(e) {
   });
 
   const averageConfidence = Math.round((totalScore / inputs.length) * 100);
-  const isMatch = averageConfidence >= 75; // Tolerates slight discrepancies (e.g. Mount Fuji vs Mountain, Aqua vs Cyan/Blue)
+  const isMatch = averageConfidence >= 75;
 
   const resultBox = document.getElementById("aiVerificationBox");
   resultBox.classList.remove("hidden");
@@ -1144,7 +1158,6 @@ function handleClaimSubmit(e) {
 
       <div class="space-y-1.5">${evalDetailsHtml}</div>
 
-      <!-- REVEAL ROOM NO & CALLABLE PHONE (EMAIL STRICTLY SUPPRESSED FOR PRIVACY) -->
       <div class="p-3.5 rounded-2xl bg-black/60 border border-emerald-500/30 space-y-1.5 text-xs">
         <div class="text-white font-medium">📍 Custody Location: <strong class="text-emerald-300">${custodyLoc}</strong></div>
         <div class="text-white font-medium">👤 Custodian: <span class="text-slate-300">${activeClaimIncident.reporterName} (${activeClaimIncident.reporterBatch})</span></div>
@@ -1180,7 +1193,7 @@ function handleClaimSubmit(e) {
 
 
 // --------------------------------------------------------------------------
-// 8. CAMPUS VULNERABILITY ANALYTICS HEATMAP MODAL
+// 9. CAMPUS VULNERABILITY ANALYTICS HEATMAP MODAL
 // --------------------------------------------------------------------------
 function openAnalyticsModal() {
   const container = document.getElementById("analyticsZonesList");

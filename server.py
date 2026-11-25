@@ -94,20 +94,38 @@ DISPOSABLE_DOMAINS = {
     'guerrillamail.com', 'trashmail.com', 'sharklasers.com', 'throwawaymail.com'
 }
 
+VALID_COMPOUNDS = {
+    'lockscreen', 'touchscreen', 'screenshot', 'smartphone', 'smartwatch', 'wristwatch',
+    'headphones', 'earphones', 'earbuds', 'bluetooth', 'trackpad', 'keyboard', 'keychain',
+    'macbook', 'thinkpad', 'ultrabook', 'notebook', 'backpack', 'matchstick', 'nightclub',
+    'strengths', 'rhythm', 'length', 'catchphrase', 'blacksmith', 'corkscrew', 'drawstring',
+    'downstream', 'hardcore', 'landscape', 'charging', 'lightning', 'thunderbolt', 'wallpaper'
+}
+
 def is_gibberish(text: str) -> bool:
     if not text or len(text.strip()) < 2:
         return True
     cleaned = text.strip()
     if re.search(r'(.)\1{2,}', cleaned):
         return True
-    for word in re.split(r'[\s\-_,\.]+', cleaned):
-        letters = re.sub(r'[^a-zA-Z]', '', word)
-        if len(letters) >= 3:
-            if re.search(r'[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]{4,}', letters):
-                return True
-            v_count = sum(1 for c in letters if c in 'aeiouyAEIOUY')
-            if v_count / len(letters) < 0.18:
-                return True
+    for word in re.split(r'[\s\-_,\.\?\/]+', cleaned):
+        letters = re.sub(r'[^a-zA-Z]', '', word).lower()
+        if len(letters) < 3:
+            continue
+        if letters in VALID_COMPOUNDS:
+            continue
+        v_count = sum(1 for c in letters if c in 'aeiouy')
+        v_ratio = v_count / len(letters)
+        if v_count == 0:
+            return True
+        if len(letters) >= 4 and v_ratio < 0.18:
+            return True
+        if re.search(r'[bcdfghjklmnpqrstvwxz]{6,}', letters):
+            return True
+        if re.match(r'^[bcdfghjklmnpqrstvwxz]{4,}', letters):
+            return True
+        if re.search(r'[bcdfghjklmnpqrstvwxz]{4,}', letters) and v_ratio < 0.25:
+            return True
     return False
 
 def validate_input_sanity(name: str, email: str, phone: str, title: str = "", batch: str = ""):
